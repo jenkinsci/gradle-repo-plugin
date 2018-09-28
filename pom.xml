@@ -1,0 +1,93 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.jenkins-ci.plugins</groupId>
+    <artifactId>plugin</artifactId>
+    <version>1.580.1</version><!-- which version of Hudson is this plugin built against? -->
+  </parent>
+
+  <groupId>org.jenkins-ci.plugins</groupId>
+  <artifactId>gradle-repo</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <packaging>hpi</packaging>
+  <name>Jenkins Gradle Repo plugin</name>
+  <description>Integrates Jenkins with Gradle Repo SCM</description>
+  <!--<url>http://wiki.jenkins-ci.org/display/JENKINS/Repo+Plugin</url>-->
+
+  <!--<licenses>-->
+    <!--<license>-->
+      <!--<name>MIT</name>-->
+      <!--<url>http://www.opensource.org/licenses/mit-license.php</url>-->
+      <!--<comments>Copyright 2011 Brad Larson. All rights reserved.</comments>-->
+    <!--</license>-->
+  <!--</licenses>-->
+
+  <developers>
+    <developer>
+      <id>YcdYng</id>
+      <name>EastWood Yang</name>
+      <email>ycdyng@hotmail.com</email>
+      <roles>
+        <role>developer</role>
+        <role>maintainer</role>
+      </roles>
+      <timezone>+8</timezone>
+    </developer>
+  </developers>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-release-plugin</artifactId>
+        <version>2.5.1</version>
+        <configuration>
+          <goals>deploy</goals>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <reporting>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jxr-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </reporting>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+  </properties>
+
+  <distributionManagement>
+    <repository>
+      <id>maven.jenkins-ci.org</id>
+      <url>https://repo.jenkins-ci.org/releases</url>
+    </repository>
+  </distributionManagement>
+
+  <!--<scm>-->
+    <!--<connection>scm:git:git://github.com/jenkinsci/gradle_repo-plugin.git</connection>-->
+    <!--<developerConnection>scm:git:git@github.com:jenkinsci/gradle_repo-plugin.git</developerConnection>-->
+    <!--<url>http://github.com/jenkinsci/repo-plugin</url>-->
+    <!--<tag>HEAD</tag>-->
+  <!--</scm>-->
+
+
+    <repositories>
+        <repository>
+            <id>repo.jenkins-ci.org</id>
+            <url>http://repo.jenkins-ci.org/public/</url>
+        </repository>
+    </repositories>
+
+    <pluginRepositories>
+        <pluginRepository>
+            <id>repo.jenkins-ci.org</id>
+            <url>http://repo.jenkins-ci.org/public/</url>
+        </pluginRepository>
+    </pluginRepositories>
+</project>
