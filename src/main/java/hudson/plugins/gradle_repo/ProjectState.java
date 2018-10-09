@@ -87,14 +87,14 @@ public class ProjectState extends SCMRevisionState implements Serializable {
             debug.log(Level.INFO, "Everything is new");
             return null;
         }
-        final Set<String> keys = modules.keySet();
         HashMap<String, ModuleState> previousStateCopy = new HashMap<String, ModuleState>(previousState.modules);
-        for (final String key : keys) {
+        for(Map.Entry<String, ModuleState> item : modules.entrySet()) {
+            String key = item.getKey();
             debug.log(Level.INFO, "key: " + key);
             final ModuleState status = previousStateCopy.get(key);
             if (status == null) {
                 // This is a new project, just added to the manifest.
-                final ModuleState newProject = modules.get(key);
+                final ModuleState newProject = item.getValue();
                 debug.log(Level.INFO, "New project: " + key);
                 changes.add(ModuleState.constructCachedInstance(newProject.getPath(), newProject.getOrigin(), newProject.getBranch(), null));
             } else if (!status.equals(modules.get(key))) {

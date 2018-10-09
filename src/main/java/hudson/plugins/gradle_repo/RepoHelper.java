@@ -4,9 +4,12 @@ import hudson.FilePath;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -124,7 +127,23 @@ public class RepoHelper {
                 projectState.addProject(path, moduleOrigin, moduleBranch, moduleRevision);
 //                logger.println("module: " + name + ", origin: " + moduleOrigin + ", branch: " + moduleBranch + ", path: " + path + ", revision: " + moduleRevision);
             }
-        } catch (final Exception e) {
+        } catch (IOException e) {
+            if (logger != null) {
+                logger.println(e);
+            }
+        } catch (URISyntaxException e) {
+            if (logger != null) {
+                logger.println(e);
+            }
+        } catch (ParserConfigurationException e) {
+            if (logger != null) {
+                logger.println(e);
+            }
+        } catch (InterruptedException e) {
+            if (logger != null) {
+                logger.println(e);
+            }
+        } catch (SAXException e) {
             if (logger != null) {
                 logger.println(e);
             }

@@ -1,5 +1,6 @@
 package hudson.plugins.gradle_repo;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -10,7 +11,7 @@ import java.util.logging.Logger;
  * when modules have changed. A gradle_repo manifest contains a list of modules, and
  * a build in Hudson has a list of ProjectStates.
  */
-public final class ModuleState {
+public final class ModuleState implements Serializable {
 
     private final String path;
     private final String origin;

@@ -29,13 +29,15 @@ import java.util.logging.Logger;
 @ExportedBean
 public class RepoScm extends SCM implements Serializable {
 
+    private static final long serialVersionUID = 6977402641248374753L;
+
     private static Logger debug = Logger.getLogger("hudson.plugins.gradle_repo.RepoScm");
 
 
     private final String repositoryUrl;
     private final String branch;
 
-    private GitHelper gitHelper;
+    private transient GitHelper gitHelper;
 
     private ProjectState currentState;
 

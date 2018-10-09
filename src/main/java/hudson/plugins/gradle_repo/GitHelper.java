@@ -119,13 +119,21 @@ public class GitHelper {
 
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         execute(moduleDir, commands, output);
-        return output.toString().trim();
+
+        try {
+            return output.toString("UTF-8").trim();
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     public boolean isLocalBranch(FilePath moduleDir, String branchName) {
         try {
             return new FilePath(moduleDir, ".git/refs/heads/" + branchName).exists();
-        } catch (Exception e) {
+        } catch (InterruptedException e) {
+            throw new RuntimeException("[repo] - fail to check file [\"" + moduleDir.getName() + "\"] is local branch or not.");
+        } catch (IOException e) {
             throw new RuntimeException("[repo] - fail to check file [\"" + moduleDir.getName() + "\"] is local branch or not.");
         }
     }
@@ -141,7 +149,9 @@ public class GitHelper {
         }
         try {
             return new FilePath(moduleDir, ".git/refs/remotes/origin/" + branchName).exists();
-        } catch (Exception e) {
+        } catch (InterruptedException e) {
+            throw new RuntimeException("[repo] - fail to check file [\"" + moduleDir.getName() + "\"] is remote branch or not.");
+        } catch (IOException e) {
             throw new RuntimeException("[repo] - fail to check file [\"" + moduleDir.getName() + "\"] is remote branch or not.");
         }
     }
@@ -153,7 +163,13 @@ public class GitHelper {
         commands.add("HEAD");
         final ByteArrayOutputStream output = new ByteArrayOutputStream();
         execute(moduleDir, commands, output);
-        return output.toString().trim();
+
+        try {
+            return output.toString("UTF-8").trim();
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     private void execute(FilePath moduleDir, List<String> commands) {
@@ -174,10 +190,11 @@ public class GitHelper {
     }
 
     private String array2String(List<String> commands) {
-        String temp = "";
+        StringBuilder temp = new StringBuilder();
         for (int i = 0; i < commands.size(); i++) {
-            temp += commands.get(i) + " ";
+            temp.append(commands.get(i));
+            temp.append(" ");
         }
-        return temp.trim();
+        return temp.toString().trim();
     }
 }
