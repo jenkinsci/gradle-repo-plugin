@@ -8,7 +8,7 @@
 
     <groupId>io.jenkins.plugins</groupId>
     <artifactId>gradle-repo</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.0-SNAPSHOT</version>
     <packaging>hpi</packaging>
     <name>Gradle Repo plugin</name>
     <description>Integrates Jenkins with Gradle Repo SCM</description>
@@ -24,7 +24,7 @@
 
     <developers>
         <developer>
-            <id>eastwoodyang</id>
+            <id>EastWoodYang</id>
             <name>EastWood Yang</name>
             <email>ycdyng@gmail.com</email>
             <roles>
