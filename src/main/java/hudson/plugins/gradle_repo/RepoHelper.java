@@ -4,12 +4,9 @@ import hudson.FilePath;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -27,47 +24,80 @@ public class RepoHelper {
             Document doc = builder.parse(repoFile.read());
             Element rootElement = doc.getDocumentElement();
 
+            RepositoryInfo defaultInfo = null;
+            NodeList defaultNodeList = rootElement.getElementsByTagName("default");
+            if (defaultNodeList.getLength() > 1) {
+                throw new RuntimeException("[repo] - Make sure there is only one '<default />' element in repo.xml");
+            } else if (defaultNodeList.getLength() == 1) {
+                defaultInfo = new RepositoryInfo();
+                Element defaultElement = (Element) defaultNodeList.item(0);
+                defaultInfo.branch = defaultElement.getAttribute("branch");
+                defaultInfo.fetchUrl = defaultElement.getAttribute("fetch");
+            }
+
             // project
             NodeList projectNodeList = rootElement.getElementsByTagName("project");
             if (projectNodeList.getLength() > 1) {
-                throw new IllegalArgumentException("[repo] - there are multiple <project /> element.");
-            }
-            List<String> includeModuleList = new ArrayList<String>();
-            if (projectNodeList.getLength() != 1) {
-                throw new RuntimeException("[repo] - without <project /> element.");
+                throw new RuntimeException("[repo] - Make sure there is only one '<project />' element in repo.xml");
+            } else if (projectNodeList.getLength() != 1) {
+                throw new RuntimeException("[repo] - Not found '<project />' element in repo.xml.");
             }
 
             Element projectElement = (Element) projectNodeList.item(0);
 
-            // project origin url
-            String origin = projectElement.getAttribute("origin");
-            if (origin == null || origin.trim().equals("")) {
-                throw new RuntimeException("[repo] - <project /> element [origin] is not set.");
-            }
-            if (!(origin.startsWith("http") || origin.startsWith("git@")) || !origin.endsWith(".git")) {
-                throw new IllegalArgumentException("[repo] - <project /> element [origin] is not valid.");
+            String projectOrigin = projectElement.getAttribute("origin");
+            if (projectOrigin.trim().isEmpty()) {
+                throw new RuntimeException("[repo] - The 'origin' attribute value of the '<project />' element is invalid.");
             }
 
-            // project origin branch
-            String branch = projectElement.getAttribute("branch");
-            if (branch == null || branch.trim().equals("")) {
-                branch = "master";
+            if (projectOrigin.startsWith("http") || projectOrigin.startsWith("git@")) {
+                projectOrigin = filterOrigin(projectOrigin);
+            } else {
+                if (defaultInfo != null && defaultInfo.fetchUrl != null) {
+                    projectOrigin = filterOrigin(defaultInfo, projectOrigin);
+                } else {
+                    throw new RuntimeException("[repo] - The 'origin' attribute value of the '<project />' element is invalid.");
+                }
             }
-            projectState.setBranch(branch);
+
+            String projectBranch = projectElement.getAttribute("branch");
+            if (projectBranch.trim().isEmpty()) {
+                if (defaultInfo != null && defaultInfo.branch != null) {
+                    projectBranch = defaultInfo.branch;
+                } else {
+                    projectBranch = "master";
+                }
+            }
+            projectState.setBranch(projectBranch);
 
             // project current revision
-            String revision = null;
+            String projectRevision = null;
             if (includeRevision && workspace.exists() && gitHelper.isGit(workspace)) {
-                revision = gitHelper.getRevision(workspace);
+                projectRevision = gitHelper.getRevision(workspace);
             }
-            projectState.project = ModuleState.constructCachedInstance("./", origin, branch, revision);
-//            logger.println("project, origin: " + origin + ", branch: " + branch + ", revision: " + revision);
+            projectState.project = ModuleState.constructCachedInstance("./", projectOrigin, projectBranch, projectRevision);
 
-            // project include module
+
+            if (defaultInfo == null) {
+                defaultInfo = new RepositoryInfo();
+                defaultInfo.branch = projectBranch;
+                String fetchUrl = projectOrigin;
+                if (fetchUrl.startsWith("git@")) {
+                    String[] temp = fetchUrl.split(":");
+                    defaultInfo.fetchUrl = temp[0] + ":" + temp[1].substring(0, temp[1].lastIndexOf("/"));
+                } else {
+                    URI uri = new URI(fetchUrl);
+                    String path = uri.getPath();
+                    String parent = path.substring(0, path.lastIndexOf("/"));
+                    defaultInfo.fetchUrl = fetchUrl.replace(uri.getPath(), "") + parent;
+                }
+            }
+
+            List<String> includeModuleList = new ArrayList<String>();
             NodeList includeModuleNodeList = projectElement.getElementsByTagName("include");
             for (int i = 0; i < includeModuleNodeList.getLength(); i++) {
                 Element includeModuleElement = (Element) includeModuleNodeList.item(i);
-                String moduleName = includeModuleElement.getAttribute("module");
+                String moduleName = includeModuleElement.getAttribute("name");
                 includeModuleList.add(moduleName.trim());
             }
 
@@ -75,8 +105,8 @@ public class RepoHelper {
             for (int i = 0; i < moduleNodeList.getLength(); i++) {
                 Element moduleElement = (Element) moduleNodeList.item(i);
                 String name = moduleElement.getAttribute("name");
-                if (name == null || name.trim().equals("")) {
-                    throw new RuntimeException("[repo] - <module /> element [name] is not set.");
+                if (name.trim().isEmpty()) {
+                    throw new RuntimeException("[repo] - The 'name' attribute value of the '<module />' element is not configured.");
                 }
 
                 // filter module
@@ -85,7 +115,7 @@ public class RepoHelper {
                 // module path
                 String path;
                 String local = moduleElement.getAttribute("local");
-                if (local == null || local.trim().equals("")) {
+                if (local.trim().isEmpty()) {
                     local = "./";
                 }
                 if (local.endsWith("/")) {
@@ -94,31 +124,29 @@ public class RepoHelper {
                     path = local + "/" + name;
                 }
 
-                // module origin url
                 String moduleOrigin = moduleElement.getAttribute("origin");
-                if ((moduleOrigin.startsWith("http") || moduleOrigin.startsWith("git@")) && moduleOrigin.endsWith(".git")) {
-
+                if (moduleOrigin.startsWith("http") || moduleOrigin.startsWith("git@")) {
+                    moduleOrigin = filterOrigin(moduleOrigin);
                 } else {
-                    if (!moduleOrigin.startsWith(".")) {
-                        throw new IllegalArgumentException("[repo] - if <module /> element [origin] is relative path, must start with './' or '../'.");
+                    if (defaultInfo != null && defaultInfo.fetchUrl != null) {
+                        moduleOrigin = filterOrigin(defaultInfo, moduleOrigin);
+                    } else {
+                        throw new RuntimeException("[repo] - The 'origin' attribute value of the '<module />' element is invalid.");
                     }
-                    if (moduleOrigin.endsWith(".git")) {
-                        moduleOrigin = moduleOrigin.replace(".git", "");
-                    }
-                    if (projectState.project == null) {
-                        throw new IllegalArgumentException("[repo] - if <module /> element [origin] is relative path, must set <project /> element [origin].");
-                    }
-                    moduleOrigin = filterRelativeOrigin(projectState.project.getOrigin(), moduleOrigin);
                 }
 
                 String moduleBranch = moduleElement.getAttribute("branch");
-                if (moduleBranch.trim().equals("")) {
-                    moduleBranch = projectState.project.getBranch();
+                if (moduleBranch.trim().isEmpty()) {
+                    if (defaultInfo != null && defaultInfo.branch != null) {
+                        moduleBranch = defaultInfo.branch;
+                    } else {
+                        moduleBranch = "master";
+                    }
                 }
 
                 // module origin revision
                 String moduleRevision = null;
-                if(includeRevision) {
+                if (includeRevision) {
                     FilePath moduleDir = new FilePath(workspace, path);
                     if (moduleDir.exists() && gitHelper.isGit(moduleDir)) {
                         moduleRevision = gitHelper.getRevision(moduleDir);
@@ -127,23 +155,7 @@ public class RepoHelper {
                 projectState.addProject(path, moduleOrigin, moduleBranch, moduleRevision);
 //                logger.println("module: " + name + ", origin: " + moduleOrigin + ", branch: " + moduleBranch + ", path: " + path + ", revision: " + moduleRevision);
             }
-        } catch (IOException e) {
-            if (logger != null) {
-                logger.println(e);
-            }
-        } catch (URISyntaxException e) {
-            if (logger != null) {
-                logger.println(e);
-            }
-        } catch (ParserConfigurationException e) {
-            if (logger != null) {
-                logger.println(e);
-            }
-        } catch (InterruptedException e) {
-            if (logger != null) {
-                logger.println(e);
-            }
-        } catch (SAXException e) {
+        } catch (final Exception e) {
             if (logger != null) {
                 logger.println(e);
             }
@@ -151,26 +163,37 @@ public class RepoHelper {
         return projectState;
     }
 
-    static String filterRelativeOrigin(String projectOrigin, String moduleOrigin) throws URISyntaxException {
-        String projectUrl, projectPath;
-        boolean isSSH = false;
-        if (projectOrigin.startsWith("git@")) {
-            isSSH = true;
-            String[] temp = projectOrigin.split(":");
-            projectUrl = temp[0];
-            projectPath = temp[1];
+    private static String filterOrigin(RepositoryInfo defaultInfo, String origin) throws URISyntaxException {
+        String url;
+        String fetchUrl = defaultInfo.fetchUrl + "/./" + origin;
+        if (fetchUrl.startsWith("git@")) {
+            String[] temp = fetchUrl.split(":");
+            url = temp[0] + ":" + PathUtils.normalize(temp[1], true);
         } else {
-            URI uri = new URI(projectOrigin);
-            projectPath = uri.getPath();
-            projectUrl = projectOrigin.replace(projectPath, "");
+            URI uri = new URI(fetchUrl);
+            url = fetchUrl.replace(uri.getPath(), "") + PathUtils.normalize(uri.getPath(), true);
         }
 
-        String prefix = "http://a.com";
-        URI tempUri = new URI(prefix + projectPath);
-        tempUri = tempUri.resolve(moduleOrigin);
-        String tempUrl = tempUri.toString();
-        tempUrl = tempUrl.replace(prefix, "");
-
-        return projectUrl + (isSSH ? ":" : "") + tempUrl + ".git";
+        if (!url.endsWith(".git")) {
+            url += ".git";
+        }
+        return url;
     }
+
+    private static String filterOrigin(String origin) throws URISyntaxException {
+        String url;
+        if (origin.startsWith("git@")) {
+            String[] temp = origin.split(":");
+            url = temp[0] + ":" + PathUtils.normalize(temp[1], true);
+        } else {
+            URI uri = new URI(origin);
+            url = origin.replace(uri.getPath(), "") + PathUtils.normalize(uri.getPath(), true);
+        }
+
+        if (!url.endsWith(".git")) {
+            url += ".git";
+        }
+        return url;
+    }
+
 }
