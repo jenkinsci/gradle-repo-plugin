@@ -8,7 +8,7 @@
 
     <groupId>io.jenkins.plugins</groupId>
     <artifactId>gradle-repo</artifactId>
-    <version>1.0.1-SNAPSHOT</version>
+    <version>1.0.2-SNAPSHOT</version>
     <packaging>hpi</packaging>
     <name>Gradle Repo plugin</name>
     <description>Integrates Jenkins with Gradle Repo SCM</description>
