@@ -5,6 +5,10 @@ manifest, to list the changes between builds, and to re-create the
 project state across all repositories for any previous build using
 a static manifest.
 
+
+<img src='https://github.com/jenkinsci/gradle-repo-plugin/blob/master/picture/1.png'/>
+
+
 =============
 
 Maintainers
