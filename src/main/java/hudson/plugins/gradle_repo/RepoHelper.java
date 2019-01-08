@@ -159,6 +159,7 @@ public class RepoHelper {
             if (logger != null) {
                 logger.println(e);
             }
+            throw new RuntimeException("Parse repo.xml error.", e);
         }
         return projectState;
     }
